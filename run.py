@@ -3,13 +3,11 @@
 # - https://stackoverflow.com/questions/6225763/downloading-multiple-attachments-using-imaplib
 # - https://stackoverflow.com/questions/43857002/script-in-python-to-download-email-attachments
 
-import imaplib, datetime, random, email, os, configparser, time, requests, json
+import datetime, random, os, configparser, time
 from webdav3.client import Client
-from os import listdir
-from os.path import isfile, join
+from os.path import join, abspath, relpath, isdir
 from pathlib import Path
 
-#os.chdir("/opt/app")
 
 config = configparser.ConfigParser()
 config.read('settings.ini')
@@ -43,13 +41,19 @@ class Dav:
         Returns:
             False: if something went wrong
         """
-        for p in Path(local_dir).rglob( '*' ):
+        local_dir_abs = abspath(local_dir)
+
+        for p in Path(local_dir_abs).rglob( '*' ):
+            if isdir(p):
+                continue
+
+            p = relpath(p, local_dir_abs)
             try:
-                upload_path = join(upload_dir, p)
-                if self.client.check(remote_path=upload_path):
-                    upload_path = upload_path.with_name(upload_path.stem + '_' +str(random.randint(10000,100000))+ upload_path.suffix)
-                self.client.upload_sync(remote_path=upload_path, local_path=join(local_dir, p))
-                os.remove("attachments/"+f)
+                upload_path = Path(join(upload_dir, p))
+                if self.client.check(remote_path=str(upload_path)):
+                    upload_path = upload_path.with_name(upload_path.stem + "_" +str(random.randint(10000,100000))+ upload_path.suffix)
+                self.client.upload_sync(remote_path=str(upload_path), local_path=join(local_dir_abs, p))
+                os.remove(join(local_dir_abs, p))
             except Exception as e:
                 print(f"failed uploading file {p} with: {e}")
 
@@ -58,7 +62,7 @@ d = Dav(config['dav']['host'], config['dav']['user'], config['dav']['password'])
 last = datetime.datetime.now()-datetime.timedelta(days=1)
 
 while True:
-    if datetime.datetime.now()-last > datetime.timedelta(minutes=2):
+    if datetime.datetime.now()-last > datetime.timedelta(minutes=1):
         print("run")
         last = datetime.datetime.now()
         try:
@@ -66,6 +70,6 @@ while True:
         except Exception as e:
             print(f"loop failed with {e}")
             d = Dav(config['dav']['host'], config['dav']['user'], config['dav']['password'])
-        time.sleep(120)
+        time.sleep(60)
 
 
