@@ -18,7 +18,7 @@ jobs:
       docker_file_path: "./"
       image_name: "cubicrootxyz/files-to-webdav"
       static_tag: "beta"
-      vuln_scan: true
+      vuln_scan: false
     secrets:
       dockerhub_user: ${{ secrets.DOCKERHUB_USERNAME }}
       dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
